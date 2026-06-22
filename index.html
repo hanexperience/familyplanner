@@ -346,14 +346,9 @@
   <div class="overlay" id="overlay">
     <div class="setup-box">
       <h2>🏠 Family Hub Setup</h2>
-      <p class="hint">One-time setup. These are saved in the browser so you won't need to do this again.</p>
+      <p class="hint">Paste your Google Calendar iCal URL below. Weather is already set to Bonbeach, Melbourne.</p>
 
-      <div class="field">
-        <label>Your city (for weather)</label>
-        <input type="text" id="cityInput" placeholder="e.g. London">
-      </div>
-
-      <div class="field">
+<div class="field">
         <label>Google Calendar iCal URL</label>
         <input type="text" id="icalInput" placeholder="https://calendar.google.com/calendar/ical/...">
         <p class="sub-hint">
@@ -406,25 +401,21 @@
 
     // ── CONFIG ────────────────────────────────────────────
     function saveConfig() {
-      const city = document.getElementById('cityInput').value.trim();
       const ical = document.getElementById('icalInput').value.trim();
-      if (!city) { document.getElementById('cityInput').focus(); return; }
-      localStorage.setItem('fh_city', city);
       localStorage.setItem('fh_ical', ical);
+      localStorage.setItem('fh_setup_done', '1');
       document.getElementById('overlay').style.display = 'none';
       init();
     }
 
     function openConfig() {
-      document.getElementById('cityInput').value = localStorage.getItem('fh_city') || '';
       document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || '';
       document.getElementById('overlay').style.display = 'flex';
     }
 
     function checkConfig() {
-      const city = localStorage.getItem('fh_city');
-      if (city) {
-        document.getElementById('cityInput').value = city;
+      // Always auto-start; overlay only shown if not previously dismissed
+      if (localStorage.getItem('fh_setup_done')) {
         document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || '';
         document.getElementById('overlay').style.display = 'none';
         init();
@@ -464,16 +455,12 @@
       95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'
     };
 
-    async function loadWeather() {
-      const city = localStorage.getItem('fh_city');
-      if (!city) return;
-      try {
-        const geo = await fetch(
-          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
-        ).then(r => r.json());
-        if (!geo.results?.length) { document.getElementById('wDesc').textContent = 'City not found'; return; }
+    // Bonbeach, Melbourne — update lat/lon here if you ever move
+    const LOCATION = { latitude: -38.1167, longitude: 145.1133 };
 
-        const { latitude, longitude } = geo.results[0];
+    async function loadWeather() {
+      try {
+        const { latitude, longitude } = LOCATION;
         const w = await fetch(
           `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
           `&current=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min` +
