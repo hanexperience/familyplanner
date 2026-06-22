@@ -527,7 +527,7 @@
         return;
       }
       try {
-        const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const proxy = `/api/ical?url=${encodeURIComponent(url)}`;
         const text  = await fetch(proxy).then(r => r.text());
         const evts  = parseIcal(text);
 
