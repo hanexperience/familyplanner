@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #0a0c10;
+      --surface: #12161e;
+      --surface2: #1a1f2b;
+      --border: #1e2330;
+      --text: #e8eaf0;
+      --text-muted: #525a70;
+      --accent: #4f8ef7;
+      --urgent: #f97316;
+      --done: #22c55e;
+      --urgent-bg: rgba(249, 115, 22, 0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+    }
+
+    /* ─── LEFT PANEL ─────────────────────────────────── */
+    .left-panel {
+      padding: 52px 40px;
+      display: flex;
+      flex-direction: column;
+      border-right: 1px solid var(--border);
+      background: #0c0e14;
+    }
+
+    .clock {
+      font-size: 100px;
+      font-weight: 700;
+      letter-spacing: -5px;
+      line-height: 1;
+      color: #fff;
+      margin-bottom: 12px;
+    }
+
+    .day-name {
+      font-size: 28px;
+      font-weight: 600;
+      color: var(--text);
+      display: block;
+    }
+
+    .date-str {
+      font-size: 16px;
+      color: var(--text-muted);
+      margin-top: 4px;
+      display: block;
+    }
+
+    .weather {
+      margin-top: auto;
+      padding-top: 40px;
+    }
+
+    .weather-icon {
+      font-size: 52px;
+      line-height: 1;
+      margin-bottom: 10px;
+    }
+
+    .weather-temp {
+      font-size: 60px;
+      font-weight: 300;
+      line-height: 1;
+      color: #fff;
+      letter-spacing: -2px;
+    }
+
+    .weather-desc {
+      font-size: 17px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .weather-hl {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ─── RIGHT PANEL ────────────────────────────────── */
+    .right-panel {
+      display: grid;
+      grid-template-rows: 1fr 1fr;
+      overflow: hidden;
+    }
+
+    .section {
+      padding: 40px 48px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .section + .section {
+      border-top: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+    }
+
+    /* ─── CALENDAR ───────────────────────────────────── */
+    .events-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      overflow: hidden;
+    }
+
+    .event-group-label {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .event-row {
+      display: flex;
+      align-items: baseline;
+      gap: 18px;
+    }
+
+    .event-time {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+      min-width: 72px;
+      flex-shrink: 0;
+    }
+
+    .event-title {
+      font-size: 21px;
+      font-weight: 400;
+      color: var(--text);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .no-events {
+      font-size: 17px;
+      color: var(--text-muted);
+    }
+
+    /* ─── TODOS ──────────────────────────────────────── */
+    .todos-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 11px;
+      overflow: hidden;
+    }
+
+    .todo-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 18px;
+      border-radius: 10px;
+      background: var(--surface);
+      transition: background 0.2s;
+    }
+
+    .todo-row.is-urgent {
+      background: var(--urgent-bg);
+      border: 1px solid rgba(249, 115, 22, 0.15);
+    }
+
+    .todo-row.is-done {
+      opacity: 0.35;
+    }
+
+    .todo-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .todo-row.is-urgent .todo-dot {
+      background: var(--urgent);
+    }
+
+    .todo-text {
+      font-size: 20px;
+      font-weight: 400;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .todo-row.is-done .todo-text {
+      text-decoration: line-through;
+    }
+
+    .urgent-pill {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--urgent);
+      background: rgba(249,115,22,0.15);
+      padding: 3px 9px;
+      border-radius: 4px;
+      flex-shrink: 0;
+    }
+
+    .no-todos {
+      font-size: 17px;
+      color: var(--text-muted);
+    }
+
+    /* ─── SETUP OVERLAY ──────────────────────────────── */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.88);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 999;
+    }
+
+    .setup-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 44px;
+      width: 520px;
+      display: flex;
+      flex-direction: column;
+      gap: 22px;
+    }
+
+    .setup-box h2 {
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .setup-box .hint {
+      font-size: 14px;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .field input {
+      width: 100%;
+      padding: 13px 16px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .field input:focus { border-color: var(--accent); }
+
+    .field .sub-hint {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 7px;
+      line-height: 1.5;
+    }
+
+    .btn-start {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 14px 28px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+      align-self: flex-start;
+    }
+
+    .btn-start:hover { opacity: 0.88; }
+
+    .settings-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 18px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+      opacity: 0.3;
+    }
+
+    .settings-btn:hover { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <!-- Setup overlay (shown until configured) -->
+  <div class="overlay" id="overlay">
+    <div class="setup-box">
+      <h2>🏠 Family Hub Setup</h2>
+      <p class="hint">One-time setup. These are saved in the browser so you won't need to do this again.</p>
+
+      <div class="field">
+        <label>Your city (for weather)</label>
+        <input type="text" id="cityInput" placeholder="e.g. London">
+      </div>
+
+      <div class="field">
+        <label>Google Calendar iCal URL</label>
+        <input type="text" id="icalInput" placeholder="https://calendar.google.com/calendar/ical/...">
+        <p class="sub-hint">
+          Google Calendar → Settings → click your calendar → "Integrate calendar" → copy the <strong>Secret address in iCal format</strong>
+        </p>
+      </div>
+
+      <button class="btn-start" onclick="saveConfig()">Start display →</button>
+    </div>
+  </div>
+
+  <!-- Settings button (re-open config) -->
+  <button class="settings-btn" onclick="openConfig()" title="Settings">⚙</button>
+
+  <!-- Left panel -->
+  <div class="left-panel">
+    <div>
+      <div class="clock" id="clock">--:--</div>
+      <span class="day-name" id="dayName">--</span>
+      <span class="date-str" id="dateStr">--</span>
+    </div>
+    <div class="weather">
+      <div class="weather-icon" id="wIcon">🌤</div>
+      <div class="weather-temp" id="wTemp">--°</div>
+      <div class="weather-desc" id="wDesc">Loading weather…</div>
+      <div class="weather-hl" id="wHL"></div>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="section">
+      <div class="section-label">Upcoming</div>
+      <div class="events-wrap" id="eventsList">
+        <span class="no-events">Loading calendar…</span>
+      </div>
+    </div>
+    <div class="section">
+      <div class="section-label">To Do</div>
+      <div class="todos-wrap" id="todosList">
+        <span class="no-todos">Loading…</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const SUPABASE_URL = 'https://rrxveifshucpinajtkgf.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHZlaWZzaHVjcGluYWp0a2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMjQ2ODMsImV4cCI6MjA5NTcwMDY4M30.7ZhWD2gUO2aPZkRbmozLsyIsVX7VzoY5W9BxXb11ne8';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // ── CONFIG ────────────────────────────────────────────
+    function saveConfig() {
+      const city = document.getElementById('cityInput').value.trim();
+      const ical = document.getElementById('icalInput').value.trim();
+      if (!city) { document.getElementById('cityInput').focus(); return; }
+      localStorage.setItem('fh_city', city);
+      localStorage.setItem('fh_ical', ical);
+      document.getElementById('overlay').style.display = 'none';
+      init();
+    }
+
+    function openConfig() {
+      document.getElementById('cityInput').value = localStorage.getItem('fh_city') || '';
+      document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || '';
+      document.getElementById('overlay').style.display = 'flex';
+    }
+
+    function checkConfig() {
+      const city = localStorage.getItem('fh_city');
+      if (city) {
+        document.getElementById('cityInput').value = city;
+        document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || '';
+        document.getElementById('overlay').style.display = 'none';
+        init();
+      }
+    }
+
+    // ── CLOCK ─────────────────────────────────────────────
+    const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+    function updateClock() {
+      const n = new Date();
+      document.getElementById('clock').textContent =
+        `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`;
+      document.getElementById('dayName').textContent = DAYS[n.getDay()];
+      document.getElementById('dateStr').textContent =
+        `${n.getDate()} ${MONTHS[n.getMonth()]} ${n.getFullYear()}`;
+    }
+
+    // ── WEATHER ───────────────────────────────────────────
+    const WMO_ICON = {
+      0:'☀️',1:'🌤',2:'⛅',3:'☁️',
+      45:'🌫',48:'🌫',
+      51:'🌦',53:'🌦',55:'🌧',
+      61:'🌧',63:'🌧',65:'🌧',
+      71:'🌨',73:'🌨',75:'❄️',
+      80:'🌦',81:'🌧',82:'⛈',
+      95:'⛈',96:'⛈',99:'⛈'
+    };
+    const WMO_DESC = {
+      0:'Clear sky',1:'Mostly clear',2:'Partly cloudy',3:'Overcast',
+      45:'Fog',48:'Freezing fog',
+      51:'Light drizzle',53:'Drizzle',55:'Heavy drizzle',
+      61:'Light rain',63:'Rain',65:'Heavy rain',
+      71:'Light snow',73:'Snow',75:'Heavy snow',
+      80:'Showers',81:'Rain showers',82:'Heavy showers',
+      95:'Thunderstorm',96:'Thunderstorm',99:'Thunderstorm'
+    };
+
+    async function loadWeather() {
+      const city = localStorage.getItem('fh_city');
+      if (!city) return;
+      try {
+        const geo = await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+        ).then(r => r.json());
+        if (!geo.results?.length) { document.getElementById('wDesc').textContent = 'City not found'; return; }
+
+        const { latitude, longitude } = geo.results[0];
+        const w = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}` +
+          `&current=temperature_2m,weathercode&daily=temperature_2m_max,temperature_2m_min` +
+          `&timezone=auto&forecast_days=1`
+        ).then(r => r.json());
+
+        const temp = Math.round(w.current.temperature_2m);
+        const code = w.current.weathercode;
+        document.getElementById('wIcon').textContent  = WMO_ICON[code] ?? '🌤';
+        document.getElementById('wTemp').textContent  = `${temp}°`;
+        document.getElementById('wDesc').textContent  = WMO_DESC[code] ?? '';
+        document.getElementById('wHL').textContent    =
+          `H: ${Math.round(w.daily.temperature_2m_max[0])}°  ·  L: ${Math.round(w.daily.temperature_2m_min[0])}°`;
+      } catch {
+        document.getElementById('wDesc').textContent = 'Weather unavailable';
+      }
+    }
+
+    // ── CALENDAR (iCal) ───────────────────────────────────
+    function parseIcal(raw) {
+      const events = [];
+      const blocks = raw.split('BEGIN:VEVENT');
+      for (let i = 1; i < blocks.length; i++) {
+        const b = blocks[i];
+        const get = k => { const m = b.match(new RegExp(`${k}[^:]*:([^\\r\\n]+)`)); return m ? m[1].trim() : null; };
+        const summary = get('SUMMARY');
+        const dtstart = get('DTSTART');
+        if (!summary || !dtstart) continue;
+
+        let start, allDay = false;
+        if (dtstart.length === 8) {
+          allDay = true;
+          start = new Date(+dtstart.slice(0,4), +dtstart.slice(4,6)-1, +dtstart.slice(6,8));
+        } else {
+          const y=dtstart.slice(0,4), mo=dtstart.slice(4,6), d=dtstart.slice(6,8);
+          const h=dtstart.slice(9,11), mi=dtstart.slice(11,13);
+          start = dtstart.endsWith('Z')
+            ? new Date(Date.UTC(+y,+mo-1,+d,+h,+mi))
+            : new Date(+y,+mo-1,+d,+h,+mi);
+        }
+        events.push({ summary, start, allDay });
+      }
+      return events;
+    }
+
+    async function loadCalendar() {
+      const url = localStorage.getItem('fh_ical');
+      const el  = document.getElementById('eventsList');
+      if (!url) {
+        el.innerHTML = '<span class="no-events">No calendar connected — add your iCal URL in ⚙ settings</span>';
+        return;
+      }
+      try {
+        const proxy = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+        const text  = await fetch(proxy).then(r => r.text());
+        const evts  = parseIcal(text);
+
+        const now   = new Date();
+        const limit = new Date(now.getTime() + 7 * 86400000);
+        const upcoming = evts
+          .filter(e => e.start >= now && e.start <= limit)
+          .sort((a,b) => a.start - b.start)
+          .slice(0, 7);
+
+        if (!upcoming.length) {
+          el.innerHTML = '<span class="no-events">Nothing in the next 7 days 🎉</span>';
+          return;
+        }
+
+        const todayS = now.toDateString();
+        const tmrwS  = new Date(now.getTime()+86400000).toDateString();
+
+        const grouped = {};
+        upcoming.forEach(e => {
+          const ds = e.start.toDateString();
+          const label = ds===todayS ? 'Today'
+            : ds===tmrwS ? 'Tomorrow'
+            : e.start.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short'});
+          (grouped[label] = grouped[label]||[]).push(e);
+        });
+
+        const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+        let html = '';
+        for (const [day, list] of Object.entries(grouped)) {
+          html += `<div>
+            <div class="event-group-label">${day}</div>
+            ${list.map(e => {
+              const t = e.allDay ? 'All day'
+                : e.start.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+              return `<div class="event-row">
+                <span class="event-time">${t}</span>
+                <span class="event-title">${esc(e.summary)}</span>
+              </div>`;
+            }).join('')}
+          </div>`;
+        }
+        el.innerHTML = html;
+      } catch {
+        el.innerHTML = '<span class="no-events">Couldn\'t load calendar</span>';
+      }
+    }
+
+    // ── TODOS ─────────────────────────────────────────────
+    let todos = [];
+
+    function renderTodos() {
+      const el     = document.getElementById('todosList');
+      const active = todos.filter(t => !t.done);
+      const done   = todos.filter(t => t.done);
+      const show   = [
+        ...active.filter(t => t.urgent),
+        ...active.filter(t => !t.urgent),
+        ...done.slice(0, 2)
+      ].slice(0, 8);
+
+      if (!show.length) {
+        el.innerHTML = '<span class="no-todos">All clear — nothing on the list ✓</span>';
+        return;
+      }
+
+      const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      el.innerHTML = show.map(t => `
+        <div class="todo-row ${t.urgent&&!t.done?'is-urgent':''} ${t.done?'is-done':''}">
+          <div class="todo-dot"></div>
+          <span class="todo-text">${esc(t.title)}</span>
+          ${t.urgent&&!t.done ? '<span class="urgent-pill">Urgent</span>' : ''}
+        </div>
+      `).join('');
+    }
+
+    async function loadTodos() {
+      const { data } = await db.from('todos').select('*')
+        .order('urgent', {ascending:false})
+        .order('created_at', {ascending:true});
+      todos = data || [];
+      renderTodos();
+    }
+
+    function subscribeTodos() {
+      db.channel('display-todos')
+        .on('postgres_changes', {event:'*', schema:'public', table:'todos'}, loadTodos)
+        .subscribe();
+    }
+
+    // ── INIT ──────────────────────────────────────────────
+    function init() {
+      updateClock();
+      setInterval(updateClock, 1000);
+
+      loadWeather();
+      setInterval(loadWeather, 10 * 60 * 1000);
+
+      loadCalendar();
+      setInterval(loadCalendar, 15 * 60 * 1000);
+
+      loadTodos();
+      subscribeTodos();
+    }
+
+    checkConfig();
+  </script>
+</body>
+</html>

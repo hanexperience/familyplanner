@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Family Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --bg: #f1f3f7;
+      --white: #ffffff;
+      --border: #e2e5ec;
+      --text: #14171f;
+      --muted: #6b7589;
+      --accent: #4f8ef7;
+      --urgent: #f97316;
+      --done-color: #22c55e;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', -apple-system, sans-serif;
+      min-height: 100vh;
+      padding-bottom: 60px;
+    }
+
+    /* ── HEADER ───────────────────────────────────────── */
+    header {
+      background: var(--white);
+      border-bottom: 1px solid var(--border);
+      padding: 18px 20px 14px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      box-shadow: var(--shadow);
+    }
+
+    header h1 {
+      font-size: 19px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    header p {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* ── ADD FORM ─────────────────────────────────────── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin: 14px 14px 0;
+      box-shadow: var(--shadow);
+    }
+
+    .card-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .title-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .title-input {
+      flex: 1;
+      padding: 13px 15px;
+      border: 1.5px solid var(--border);
+      border-radius: 11px;
+      font-size: 16px;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .title-input:focus { border-color: var(--accent); }
+
+    .meta-row {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .who-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      font-size: 14px;
+      font-family: inherit;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.15s;
+      min-width: 0;
+    }
+
+    .who-input:focus { border-color: var(--accent); }
+
+    .urgent-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .urgent-btn.on {
+      background: rgba(249,115,22,0.1);
+      border-color: var(--urgent);
+      color: var(--urgent);
+    }
+
+    .add-btn {
+      width: 100%;
+      padding: 15px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 11px;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.15s;
+      letter-spacing: -0.2px;
+    }
+
+    .add-btn:active { transform: scale(0.98); opacity: 0.9; }
+    .add-btn:disabled { opacity: 0.45; cursor: default; }
+
+    /* ── FILTER TABS ──────────────────────────────────── */
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 14px 14px 2px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1.5px solid var(--border);
+      background: var(--white);
+      color: var(--muted);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .tab.active {
+      background: var(--text);
+      border-color: var(--text);
+      color: #fff;
+    }
+
+    /* ── TODO LIST ────────────────────────────────────── */
+    .list {
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .todo-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 14px 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow);
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .todo-card.is-urgent {
+      border-color: rgba(249,115,22,0.35);
+      background: rgba(249,115,22,0.03);
+    }
+
+    .todo-card.is-done {
+      opacity: 0.55;
+    }
+
+    .check-circle {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.15s;
+      font-size: 13px;
+      color: transparent;
+    }
+
+    .check-circle.checked {
+      background: var(--done-color);
+      border-color: var(--done-color);
+      color: #fff;
+    }
+
+    .todo-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .todo-title {
+      font-size: 16px;
+      font-weight: 500;
+      line-height: 1.3;
+      word-break: break-word;
+    }
+
+    .is-done .todo-title {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .todo-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 4px;
+    }
+
+    .meta-text {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .badge-urgent {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
+      color: var(--urgent);
+      background: rgba(249,115,22,0.12);
+      padding: 2px 7px;
+      border-radius: 4px;
+    }
+
+    .actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      border-radius: 8px;
+      font-size: 17px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.1s;
+    }
+
+    .icon-btn:active { background: var(--border); }
+
+    /* ── EMPTY ────────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 50px 30px;
+      color: var(--muted);
+    }
+
+    .empty-icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-text { font-size: 15px; }
+
+    /* ── TOAST ────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1a1d26;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      padding: 11px 20px;
+      border-radius: 24px;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.2s;
+      z-index: 100;
+      white-space: nowrap;
+    }
+
+    .toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🏠 Family Hub</h1>
+    <p id="statusLine">Loading…</p>
+  </header>
+
+  <div class="card">
+    <div class="card-title">Add to list</div>
+    <div class="title-row">
+      <input type="text" class="title-input" id="newTitle" placeholder="What needs doing?" maxlength="120">
+    </div>
+    <div class="meta-row">
+      <input type="text" class="who-input" id="newWho" placeholder="Your name" maxlength="30">
+      <button class="urgent-btn" id="urgentBtn" onclick="toggleUrgent()">🔥 Urgent</button>
+    </div>
+    <button class="add-btn" id="addBtn" onclick="addTodo()">+ Add to list</button>
+  </div>
+
+  <div class="tabs" id="tabs">
+    <div class="tab active" data-filter="active" onclick="setFilter(this)">Active</div>
+    <div class="tab" data-filter="urgent" onclick="setFilter(this)">🔥 Urgent</div>
+    <div class="tab" data-filter="done" onclick="setFilter(this)">Done</div>
+    <div class="tab" data-filter="all" onclick="setFilter(this)">All</div>
+  </div>
+
+  <div class="list" id="list"></div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://rrxveifshucpinajtkgf.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHZlaWZzaHVjcGluYWp0a2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMjQ2ODMsImV4cCI6MjA5NTcwMDY4M30.7ZhWD2gUO2aPZkRbmozLsyIsVX7VzoY5W9BxXb11ne8';
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let todos  = [];
+    let urgent = false;
+    let filter = 'active';
+
+    // ── TOAST ─────────────────────────────────────────────
+    let toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+    }
+
+    // ── URGENT TOGGLE ─────────────────────────────────────
+    function toggleUrgent() {
+      urgent = !urgent;
+      document.getElementById('urgentBtn').classList.toggle('on', urgent);
+    }
+
+    // ── FILTER ────────────────────────────────────────────
+    function setFilter(el) {
+      filter = el.dataset.filter;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+      renderTodos();
+    }
+
+    // ── ADD ───────────────────────────────────────────────
+    async function addTodo() {
+      const title = document.getElementById('newTitle').value.trim();
+      const who   = document.getElementById('newWho').value.trim();
+      if (!title) { document.getElementById('newTitle').focus(); return; }
+
+      const btn = document.getElementById('addBtn');
+      btn.disabled = true;
+      btn.textContent = 'Adding…';
+
+      const { error } = await db.from('todos').insert({
+        title, urgent, done: false,
+        created_by: who || null
+      });
+
+      btn.disabled = false;
+      btn.textContent = '+ Add to list';
+
+      if (!error) {
+        document.getElementById('newTitle').value = '';
+        urgent = false;
+        document.getElementById('urgentBtn').classList.remove('on');
+        if (who) localStorage.setItem('fh_name', who);
+        showToast('Added to list ✓');
+        // Switch to active tab so you see the new item
+        setFilter(document.querySelector('.tab[data-filter="active"]'));
+      } else {
+        showToast('Error — try again');
+      }
+    }
+
+    // ── TOGGLE DONE ───────────────────────────────────────
+    async function toggleDone(id, current) {
+      await db.from('todos').update({ done: !current }).eq('id', id);
+      showToast(current ? 'Marked as active' : 'Marked as done ✓');
+    }
+
+    // ── TOGGLE URGENT ─────────────────────────────────────
+    async function toggleUrgentItem(id, current) {
+      await db.from('todos').update({ urgent: !current }).eq('id', id);
+      showToast(current ? 'Urgency removed' : 'Marked as urgent 🔥');
+    }
+
+    // ── DELETE ────────────────────────────────────────────
+    async function deleteTodo(id) {
+      const ok = confirm('Delete this item?');
+      if (!ok) return;
+      await db.from('todos').delete().eq('id', id);
+      showToast('Deleted');
+    }
+
+    // ── RENDER ────────────────────────────────────────────
+    function formatTime(iso) {
+      const diff = Date.now() - new Date(iso);
+      if (diff < 60000)  return 'Just now';
+      if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`;
+      if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+      if (diff < 604800000) return `${Math.floor(diff/86400000)}d ago`;
+      return new Date(iso).toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    }
+
+    const esc = s => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
+    function renderTodos() {
+      let list = todos;
+      if (filter === 'active') list = todos.filter(t => !t.done);
+      if (filter === 'urgent') list = todos.filter(t => t.urgent && !t.done);
+      if (filter === 'done')   list = todos.filter(t => t.done);
+
+      const el = document.getElementById('list');
+
+      if (!list.length) {
+        const msgs = {
+          active: ['🎉', 'All done — nothing active'],
+          urgent: ['✅', 'No urgent items'],
+          done:   ['📋', 'Nothing marked as done yet'],
+          all:    ['📝', 'List is empty — add something above']
+        };
+        const [icon, text] = msgs[filter];
+        el.innerHTML = `<div class="empty"><div class="empty-icon">${icon}</div><div class="empty-text">${text}</div></div>`;
+        return;
+      }
+
+      const sorted = [...list].sort((a,b) => {
+        if (a.urgent && !b.urgent) return -1;
+        if (!a.urgent && b.urgent) return 1;
+        return new Date(a.created_at) - new Date(b.created_at);
+      });
+
+      el.innerHTML = sorted.map(t => {
+        const by = t.created_by ? ` · ${esc(t.created_by)}` : '';
+        return `
+          <div class="todo-card ${t.urgent&&!t.done?'is-urgent':''} ${t.done?'is-done':''}">
+            <button class="check-circle ${t.done?'checked':''}" onclick="toggleDone('${t.id}',${t.done})">✓</button>
+            <div class="todo-info">
+              <div class="todo-title">${esc(t.title)}</div>
+              <div class="todo-meta">
+                <span class="meta-text">${formatTime(t.created_at)}${by}</span>
+                ${t.urgent&&!t.done ? '<span class="badge-urgent">Urgent</span>' : ''}
+              </div>
+            </div>
+            <div class="actions">
+              <button class="icon-btn" title="${t.urgent?'Remove urgent':'Mark urgent'}"
+                onclick="toggleUrgentItem('${t.id}',${t.urgent})">${t.urgent?'🔥':'💤'}</button>
+              <button class="icon-btn" title="Delete" onclick="deleteTodo('${t.id}')">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Update status line
+      const active  = todos.filter(t=>!t.done).length;
+      const urgentN = todos.filter(t=>t.urgent&&!t.done).length;
+      document.getElementById('statusLine').textContent =
+        urgentN > 0 ? `${active} active · ${urgentN} urgent` : `${active} active items`;
+    }
+
+    // ── LOAD + SUBSCRIBE ──────────────────────────────────
+    async function loadTodos() {
+      const { data } = await db.from('todos').select('*')
+        .order('created_at', { ascending: true });
+      todos = data || [];
+      renderTodos();
+    }
+
+    function subscribeTodos() {
+      db.channel('manage-todos')
+        .on('postgres_changes', { event:'*', schema:'public', table:'todos' }, loadTodos)
+        .subscribe();
+    }
+
+    // Restore saved name
+    const saved = localStorage.getItem('fh_name');
+    if (saved) document.getElementById('newWho').value = saved;
+
+    // Enter to submit
+    document.getElementById('newTitle').addEventListener('keydown', e => {
+      if (e.key === 'Enter') addTodo();
+    });
+
+    loadTodos();
+    subscribeTodos();
+  </script>
+</body>
+</html>
