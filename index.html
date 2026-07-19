@@ -2,7 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Family Hub">
   <title>Family Hub</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap">
@@ -23,11 +27,14 @@
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
+    html, body { height: 100%; }
+
     body {
       background: var(--bg);
       color: var(--text);
       font-family: 'Inter', -apple-system, sans-serif;
       height: 100vh;
+      min-height: -webkit-fill-available; /* older iPad Safari: avoid content being clipped under the toolbar */
       overflow: hidden;
       display: grid;
       grid-template-columns: 360px 1fr;
@@ -351,12 +358,12 @@
 
         const temp = Math.round(w.current.temperature_2m);
         const code = w.current.weathercode;
-        document.getElementById('wIcon').textContent  = WMO_ICON[code] ?? '🌤';
+        document.getElementById('wIcon').textContent  = WMO_ICON[code] || '🌤';
         document.getElementById('wTemp').textContent  = `${temp}°`;
-        document.getElementById('wDesc').textContent  = WMO_DESC[code] ?? '';
+        document.getElementById('wDesc').textContent  = WMO_DESC[code] || '';
         document.getElementById('wHL').textContent    =
           `H: ${Math.round(w.daily.temperature_2m_max[0])}°  ·  L: ${Math.round(w.daily.temperature_2m_min[0])}°`;
-      } catch {
+      } catch (e) {
         document.getElementById('wDesc').textContent = 'Weather unavailable';
       }
     }
@@ -434,7 +441,7 @@
           </div>`;
         }
         el.innerHTML = html;
-      } catch {
+      } catch (err) {
         el.innerHTML = '<span class="no-events">Couldn\'t load calendar</span>';
       }
     }
