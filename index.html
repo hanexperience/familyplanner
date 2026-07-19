@@ -237,108 +237,6 @@
       color: var(--text-muted);
     }
 
-    /* ─── SETUP OVERLAY ──────────────────────────────── */
-    .overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.88);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 999;
-    }
-
-    .setup-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      padding: 44px;
-      width: 520px;
-      display: flex;
-      flex-direction: column;
-      gap: 22px;
-    }
-
-    .setup-box h2 {
-      font-size: 24px;
-      font-weight: 700;
-    }
-
-    .setup-box .hint {
-      font-size: 14px;
-      color: var(--text-muted);
-      line-height: 1.6;
-    }
-
-    .field label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 8px;
-    }
-
-    .field input {
-      width: 100%;
-      padding: 13px 16px;
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      color: var(--text);
-      font-size: 15px;
-      font-family: inherit;
-      outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .field input:focus { border-color: var(--accent); }
-
-    .field .sub-hint {
-      font-size: 12px;
-      color: var(--text-muted);
-      margin-top: 7px;
-      line-height: 1.5;
-    }
-
-    .btn-start {
-      background: var(--accent);
-      color: #fff;
-      border: none;
-      padding: 14px 28px;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: 700;
-      cursor: pointer;
-      font-family: inherit;
-      transition: opacity 0.2s;
-      align-self: flex-start;
-    }
-
-    .btn-start:hover { opacity: 0.88; }
-
-    .settings-btn {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      font-size: 18px;
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: opacity 0.2s;
-      opacity: 0.3;
-    }
-
-    .settings-btn:hover { opacity: 1; }
-
     .timer-link {
       position: fixed;
       bottom: 20px;
@@ -362,27 +260,6 @@
   </style>
 </head>
 <body>
-
-  <!-- Setup overlay (shown until configured) -->
-  <div class="overlay" id="overlay">
-    <div class="setup-box">
-      <h2>🏠 Family Hub Setup</h2>
-      <p class="hint">Your family calendar is already connected. Paste a different iCal URL below only if you want to switch it. Weather is already set to Bonbeach, Melbourne.</p>
-
-<div class="field">
-        <label>Google Calendar iCal URL</label>
-        <input type="text" id="icalInput" placeholder="https://calendar.google.com/calendar/ical/...">
-        <p class="sub-hint">
-          Google Calendar → Settings → click your calendar → "Integrate calendar" → copy the <strong>Secret address in iCal format</strong>
-        </p>
-      </div>
-
-      <button class="btn-start" onclick="saveConfig()">Start display →</button>
-    </div>
-  </div>
-
-  <!-- Settings button (re-open config) -->
-  <button class="settings-btn" onclick="openConfig()" title="Settings">⚙</button>
 
   <!-- Morning timer link -->
   <a class="timer-link" href="timer.html" title="Morning Timer">⏰</a>
@@ -423,33 +300,9 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHZlaWZzaHVjcGluYWp0a2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMjQ2ODMsImV4cCI6MjA5NTcwMDY4M30.7ZhWD2gUO2aPZkRbmozLsyIsVX7VzoY5W9BxXb11ne8';
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    // Permanently wired-in family calendar — no setup step needed.
-    // Change or override any time via the ⚙ settings button.
-    const DEFAULT_ICAL = 'https://calendar.google.com/calendar/ical/0a9e2e1666980d8e86be83c77184f9a8793c5bfaa1c559a32f99510326e6fb6c%40group.calendar.google.com/private-118c15713480175eecb727813a0a3013/basic.ics';
-
-    // ── CONFIG ────────────────────────────────────────────
-    function saveConfig() {
-      const ical = document.getElementById('icalInput').value.trim();
-      localStorage.setItem('fh_ical', ical || DEFAULT_ICAL);
-      localStorage.setItem('fh_setup_done', '1');
-      document.getElementById('overlay').style.display = 'none';
-      init();
-    }
-
-    function openConfig() {
-      document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || DEFAULT_ICAL;
-      document.getElementById('overlay').style.display = 'flex';
-    }
-
-    function checkConfig() {
-      // Calendar is baked in — auto-provision it on first run and skip the setup screen entirely.
-      if (!localStorage.getItem('fh_ical')) {
-        localStorage.setItem('fh_ical', DEFAULT_ICAL);
-      }
-      localStorage.setItem('fh_setup_done', '1');
-      document.getElementById('overlay').style.display = 'none';
-      init();
-    }
+    // The family calendar URL is never stored client-side — /api/ical
+    // resolves it server-side (FAMILY_ICAL_URL env var on Vercel, or the
+    // same fallback baked into server.js for local runs). See api/ical.js.
 
     // ── CLOCK ─────────────────────────────────────────────
     const DAYS   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
@@ -536,16 +389,10 @@
     }
 
     async function loadCalendar() {
-      const url = localStorage.getItem('fh_ical');
-      const el  = document.getElementById('eventsList');
-      if (!url) {
-        el.innerHTML = '<span class="no-events">No calendar connected — add your iCal URL in ⚙ settings</span>';
-        return;
-      }
+      const el = document.getElementById('eventsList');
       try {
-        const proxy = `/api/ical?url=${encodeURIComponent(url)}`;
-        const text  = await fetch(proxy).then(r => r.text());
-        const evts  = parseIcal(text);
+        const text = await fetch('/api/ical').then(r => r.text());
+        const evts = parseIcal(text);
 
         const now   = new Date();
         const limit = new Date(now.getTime() + 7 * 86400000);
@@ -649,7 +496,7 @@
       subscribeTodos();
     }
 
-    checkConfig();
+    init();
   </script>
 </body>
 </html>
