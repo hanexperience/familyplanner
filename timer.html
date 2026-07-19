@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Morning Timer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
+<style>
+  :root {
+    --bg: #0a0c10;
+    --surface: #12161e;
+    --surface2: #1a1f2b;
+    --border: #1e2330;
+    --text: #e8eaf0;
+    --text-muted: #6b7385;
+    --kei: #4f8ef7;
+    --kei-dim: rgba(79,142,247,0.10);
+    --hiro: #a78bfa;
+    --hiro-dim: rgba(167,139,250,0.10);
+    --done: #22c55e;
+    --done-dim: rgba(34,197,94,0.12);
+    --missed: #f43f5e;
+    --missed-dim: rgba(244,63,94,0.12);
+    --urgent: #f97316;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, sans-serif;
+    overflow: hidden;
+  }
+
+  /* ─── PRE-START SCREEN ───────────────────────────── */
+  .pre-start {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 26px;
+    padding: 40px;
+    text-align: center;
+  }
+
+  .pre-start .emoji { font-size: 64px; }
+
+  .pre-start h1 {
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .pre-start p {
+    font-size: 17px;
+    color: var(--text-muted);
+    max-width: 420px;
+    line-height: 1.5;
+  }
+
+  .pre-start .deadline-note {
+    font-size: 15px;
+    color: var(--text-muted);
+  }
+
+  .pre-start .deadline-note b { color: var(--text); }
+
+  .start-btn {
+    margin-top: 12px;
+    background: var(--kei);
+    color: #fff;
+    border: none;
+    padding: 20px 44px;
+    border-radius: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(79,142,247,0.35);
+    transition: transform 0.1s, opacity 0.15s;
+  }
+
+  .start-btn:active { transform: scale(0.97); opacity: 0.9; }
+
+  .pre-start .totals-preview {
+    display: flex;
+    gap: 40px;
+    margin-top: 18px;
+  }
+
+  .totals-preview .tp-item { text-align: center; }
+
+  .totals-preview .tp-name {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+
+  .totals-preview .tp-amount {
+    font-size: 26px;
+    font-weight: 700;
+  }
+
+  /* ─── SPLIT SCREEN ───────────────────────────────── */
+  .split {
+    height: 100vh;
+    display: none;
+    flex-direction: row;
+  }
+
+  .side {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    cursor: pointer;
+    position: relative;
+    transition: background 0.3s;
+    padding: 30px;
+  }
+
+  .side.kei { background: var(--kei-dim); }
+  .side.hiro { background: var(--hiro-dim); }
+
+  .side.is-done.kei, .side.is-done.hiro { background: var(--done-dim); }
+  .side.is-missed.kei, .side.is-missed.hiro { background: var(--missed-dim); }
+
+  .side.urgent-phase { animation: pulseBg 1s infinite; }
+
+  @keyframes pulseBg {
+    0%, 100% { filter: brightness(1); }
+    50% { filter: brightness(1.35); }
+  }
+
+  .divider {
+    width: 2px;
+    background: var(--border);
+  }
+
+  .side-name {
+    font-size: 15vw;
+    line-height: 1;
+    font-weight: 800;
+    letter-spacing: -3px;
+  }
+
+  .side.kei .side-name { color: var(--kei); }
+  .side.hiro .side-name { color: var(--hiro); }
+  .side.is-done .side-name { color: var(--done); }
+  .side.is-missed .side-name { color: var(--missed); }
+
+  .side-timer {
+    font-size: 9vw;
+    font-weight: 700;
+    letter-spacing: -2px;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .side-status {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-muted);
+    min-height: 30px;
+  }
+
+  .side.is-done .side-status { color: var(--done); }
+  .side.is-missed .side-status { color: var(--missed); }
+
+  .side-total {
+    position: absolute;
+    bottom: 34px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-muted);
+    background: rgba(0,0,0,0.25);
+    padding: 8px 18px;
+    border-radius: 20px;
+  }
+
+  .side-total b { color: var(--text); font-size: 20px; }
+
+  /* ─── GEAR / BACK ────────────────────────────────── */
+  .corner-btn {
+    position: fixed;
+    bottom: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    opacity: 0.35;
+    transition: opacity 0.2s;
+    z-index: 50;
+    text-decoration: none;
+  }
+  .corner-btn:hover { opacity: 1; }
+  #gearBtn { right: 20px; }
+  #backLink { left: 20px; }
+
+  /* ─── ADMIN OVERLAY ──────────────────────────────── */
+  .admin-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.88);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+
+  .admin-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 36px;
+    width: 460px;
+    max-width: 90vw;
+    max-height: 85vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .admin-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+
+  .admin-kid {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+
+  .admin-kid-name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+
+  .admin-kid.kei .admin-kid-name { color: var(--kei); }
+  .admin-kid.hiro .admin-kid-name { color: var(--hiro); }
+
+  .admin-kid-total { font-size: 24px; font-weight: 700; margin-bottom: 12px; }
+
+  .admin-row { display: flex; gap: 8px; }
+
+  .admin-btn {
+    flex: 1;
+    padding: 10px 8px;
+    border-radius: 9px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .admin-btn:active { opacity: 0.7; }
+  .admin-btn.danger { color: var(--missed); }
+
+  .admin-divider { height: 1px; background: var(--border); margin: 4px 0; }
+
+  .admin-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 14px;
+  }
+
+  .admin-toggle input { width: 20px; height: 20px; }
+
+  .admin-close {
+    background: var(--kei);
+    color: #fff;
+    border: none;
+    padding: 13px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+  <!-- PRE-START -->
+  <div class="pre-start" id="preStart">
+    <div class="emoji">⏰</div>
+    <h1>Good morning!</h1>
+    <p>Start the timer once the kids are up. Each side counts down to <b>8:15am</b> — Kei and Hiro tap their side when they're ready for the day.</p>
+    <button class="start-btn" id="startBtn">▶ Start Timer</button>
+    <div class="deadline-note" id="deadlineNote"></div>
+    <div class="totals-preview">
+      <div class="tp-item">
+        <div class="tp-name" style="color:var(--kei)">Kei</div>
+        <div class="tp-amount" id="previewKei">$0.00</div>
+      </div>
+      <div class="tp-item">
+        <div class="tp-name" style="color:var(--hiro)">Hiro</div>
+        <div class="tp-amount" id="previewHiro">$0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SPLIT SCREEN -->
+  <div class="split" id="splitScreen">
+    <div class="side kei" id="sideKei">
+      <div class="side-name">Kei</div>
+      <div class="side-timer" id="timerKei">--:--</div>
+      <div class="side-status" id="statusKei">Tap when you're ready!</div>
+      <div class="side-total">Total: <b id="totalKei">$0.00</b></div>
+    </div>
+    <div class="divider"></div>
+    <div class="side hiro" id="sideHiro">
+      <div class="side-name">Hiro</div>
+      <div class="side-timer" id="timerHiro">--:--</div>
+      <div class="side-status" id="statusHiro">Tap when you're ready!</div>
+      <div class="side-total">Total: <b id="totalHiro">$0.00</b></div>
+    </div>
+  </div>
+
+  <a class="corner-btn" id="backLink" href="index.html" title="Family Hub">🏠</a>
+  <button class="corner-btn" id="gearBtn" title="Parent controls">⚙</button>
+
+  <!-- ADMIN OVERLAY -->
+  <div class="admin-overlay" id="adminOverlay">
+    <div class="admin-box">
+      <h2>Parent controls</h2>
+
+      <div class="admin-kid kei">
+        <div class="admin-kid-name">KEI</div>
+        <div class="admin-kid-total" id="adminTotalKei">$0.00</div>
+        <div class="admin-row">
+          <button class="admin-btn" data-kid="kei" data-amt="50">+50¢</button>
+          <button class="admin-btn" data-kid="kei" data-amt="-50">−50¢</button>
+          <button class="admin-btn danger" data-kid="kei" data-reset="1">Reset to $0</button>
+        </div>
+      </div>
+
+      <div class="admin-kid hiro">
+        <div class="admin-kid-name">HIRO</div>
+        <div class="admin-kid-total" id="adminTotalHiro">$0.00</div>
+        <div class="admin-row">
+          <button class="admin-btn" data-kid="hiro" data-amt="50">+50¢</button>
+          <button class="admin-btn" data-kid="hiro" data-amt="-50">−50¢</button>
+          <button class="admin-btn danger" data-kid="hiro" data-reset="1">Reset to $0</button>
+        </div>
+      </div>
+
+      <div class="admin-divider"></div>
+
+      <div class="admin-toggle">
+        <span>Mute alarm sounds</span>
+        <input type="checkbox" id="muteToggle">
+      </div>
+
+      <button class="admin-btn danger" id="restartDayBtn">Restart today's timer</button>
+
+      <button class="admin-close" id="closeAdminBtn">Close</button>
+    </div>
+  </div>
+
+<script>
+  // ── CONFIG ──────────────────────────────────────────
+  const DEADLINE_H = 8, DEADLINE_M = 15;
+  const TAP_CENTS = 50;
+  const KIDS = ['kei', 'hiro'];
+
+  // ── HELPERS ─────────────────────────────────────────
+  function todayStr() {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  }
+
+  function getCents(kid) { return parseInt(localStorage.getItem(`fh_${kid}_cents`) || '0', 10); }
+  function setCents(kid, val) { localStorage.setItem(`fh_${kid}_cents`, String(val)); }
+  function formatMoney(cents) {
+    const neg = cents < 0;
+    return `${neg ? '−' : ''}$${(Math.abs(cents)/100).toFixed(2)}`;
+  }
+
+  function isMuted() { return localStorage.getItem('fh_muted') === '1'; }
+
+  function defaultKidState() { return { status: 'pending', tappedAt: null }; }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem('fh_timer_day');
+      if (raw) {
+        const s = JSON.parse(raw);
+        if (s.date === todayStr()) return s;
+      }
+    } catch (e) {}
+    return { date: todayStr(), started: false, deadline: null, kei: defaultKidState(), hiro: defaultKidState() };
+  }
+
+  function saveState() { localStorage.setItem('fh_timer_day', JSON.stringify(state)); }
+
+  let state = loadState();
+  let tickHandle = null;
+  let audioCtx = null;
+
+  // ── SOUND ───────────────────────────────────────────
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    return audioCtx;
+  }
+
+  function beep(freq, start, dur, type='sine', vol=0.22) {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(vol, ctx.currentTime + start);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + dur);
+    osc.start(ctx.currentTime + start);
+    osc.stop(ctx.currentTime + start + dur);
+  }
+
+  function playSuccessSound() {
+    if (isMuted()) return;
+    beep(523, 0, 0.15);
+    beep(659, 0.12, 0.15);
+    beep(784, 0.24, 0.28, 'sine', 0.25);
+  }
+
+  function playMissSound() {
+    if (isMuted()) return;
+    beep(220, 0, 0.35, 'sawtooth', 0.15);
+    beep(180, 0.3, 0.5, 'sawtooth', 0.15);
+  }
+
+  // ── RENDER ──────────────────────────────────────────
+  function renderTotals() {
+    KIDS.forEach(kid => {
+      const money = formatMoney(getCents(kid));
+      const capName = kid[0].toUpperCase() + kid.slice(1);
+      const totalEl = document.getElementById(`total${capName}`);
+      const previewEl = document.getElementById(`preview${capName}`);
+      const adminEl = document.getElementById(`adminTotal${capName}`);
+      if (totalEl) totalEl.textContent = money;
+      if (previewEl) previewEl.textContent = money;
+      if (adminEl) adminEl.textContent = money;
+    });
+  }
+
+  function renderSide(kid) {
+    const capName = kid[0].toUpperCase() + kid.slice(1);
+    const sideEl = document.getElementById(`side${capName}`);
+    const statusEl = document.getElementById(`status${capName}`);
+    const st = state[kid].status;
+    sideEl.classList.remove('is-done', 'is-missed');
+    if (st === 'done') {
+      sideEl.classList.add('is-done');
+      statusEl.textContent = `✓ Done! +${formatMoney(TAP_CENTS)}`;
+    } else if (st === 'missed') {
+      sideEl.classList.add('is-missed');
+      statusEl.textContent = `✗ Missed −${formatMoney(TAP_CENTS)}`;
+    } else {
+      statusEl.textContent = "Tap when you're ready!";
+    }
+  }
+
+  function updateDeadlineNote() {
+    const d = new Date();
+    d.setHours(DEADLINE_H, DEADLINE_M, 0, 0);
+    document.getElementById('deadlineNote').innerHTML =
+      `Deadline today: <b>${d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'})}</b>`;
+  }
+
+  // ── TAP HANDLING ────────────────────────────────────
+  function applyResult(kid, result) {
+    if (result === 'done') {
+      setCents(kid, getCents(kid) + TAP_CENTS);
+      playSuccessSound();
+    } else if (result === 'missed') {
+      setCents(kid, getCents(kid) - TAP_CENTS);
+      playMissSound();
+    }
+    renderTotals();
+    renderSide(kid);
+  }
+
+  function handleTap(kid) {
+    if (!state.started) return;
+    if (state[kid].status !== 'pending') return;
+    state[kid].status = 'done';
+    state[kid].tappedAt = Date.now();
+    saveState();
+    applyResult(kid, 'done');
+  }
+
+  // ── TICK ────────────────────────────────────────────
+  function tick() {
+    const remaining = state.deadline - Date.now();
+    const clamped = Math.max(0, remaining);
+    const mins = Math.floor(clamped / 60000);
+    const secs = Math.floor((clamped % 60000) / 1000);
+    const label = `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+    KIDS.forEach(kid => {
+      const capName = kid[0].toUpperCase() + kid.slice(1);
+      const timerEl = document.getElementById(`timer${capName}`);
+      if (timerEl) timerEl.textContent = label;
+      const sideEl = document.getElementById(`side${capName}`);
+      if (sideEl) sideEl.classList.toggle('urgent-phase', remaining > 0 && remaining <= 5*60000 && state[kid].status === 'pending');
+    });
+
+    if (remaining <= 0) {
+      let changed = false;
+      KIDS.forEach(kid => {
+        if (state[kid].status === 'pending') {
+          state[kid].status = 'missed';
+          applyResult(kid, 'missed');
+          changed = true;
+        }
+      });
+      if (changed) saveState();
+      clearInterval(tickHandle);
+      tickHandle = null;
+    }
+  }
+
+  function startTicking() {
+    if (tickHandle) clearInterval(tickHandle);
+    tick();
+    tickHandle = setInterval(tick, 1000);
+  }
+
+  // ── SCREEN SWITCHING ────────────────────────────────
+  function showPreStart() {
+    document.getElementById('preStart').style.display = 'flex';
+    document.getElementById('splitScreen').style.display = 'none';
+    updateDeadlineNote();
+    renderTotals();
+  }
+
+  function showSplit() {
+    document.getElementById('preStart').style.display = 'none';
+    document.getElementById('splitScreen').style.display = 'flex';
+    KIDS.forEach(renderSide);
+    renderTotals();
+    startTicking();
+  }
+
+  function startDay() {
+    getAudioCtx(); // unlock audio on user gesture
+    const now = new Date();
+    const deadline = new Date();
+    deadline.setHours(DEADLINE_H, DEADLINE_M, 0, 0);
+    if (deadline.getTime() <= now.getTime()) {
+      const ok = confirm("It's already past 8:15 — start anyway? Both sides will show as missed right away.");
+      if (!ok) return;
+    }
+    state = { date: todayStr(), started: true, deadline: deadline.getTime(), kei: defaultKidState(), hiro: defaultKidState() };
+    saveState();
+    showSplit();
+  }
+
+  // ── ADMIN ───────────────────────────────────────────
+  function openAdmin() {
+    renderTotals();
+    document.getElementById('muteToggle').checked = isMuted();
+    document.getElementById('adminOverlay').style.display = 'flex';
+  }
+
+  function closeAdmin() {
+    document.getElementById('adminOverlay').style.display = 'none';
+  }
+
+  document.getElementById('gearBtn').addEventListener('click', openAdmin);
+  document.getElementById('closeAdminBtn').addEventListener('click', closeAdmin);
+
+  document.querySelectorAll('.admin-btn[data-kid]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const kid = btn.dataset.kid;
+      if (btn.dataset.reset) {
+        if (confirm(`Reset ${kid}'s total to $0.00?`)) setCents(kid, 0);
+      } else {
+        const amt = parseInt(btn.dataset.amt, 10);
+        setCents(kid, getCents(kid) + amt);
+      }
+      renderTotals();
+    });
+  });
+
+  document.getElementById('muteToggle').addEventListener('change', e => {
+    localStorage.setItem('fh_muted', e.target.checked ? '1' : '0');
+  });
+
+  document.getElementById('restartDayBtn').addEventListener('click', () => {
+    if (!confirm("Restart today's timer? Any taps so far today will be cleared (money already awarded stays).")) return;
+    state = { date: todayStr(), started: false, deadline: null, kei: defaultKidState(), hiro: defaultKidState() };
+    saveState();
+    if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
+    closeAdmin();
+    showPreStart();
+  });
+
+  document.getElementById('startBtn').addEventListener('click', startDay);
+  document.getElementById('sideKei').addEventListener('click', () => handleTap('kei'));
+  document.getElementById('sideHiro').addEventListener('click', () => handleTap('hiro'));
+
+  // ── INIT ────────────────────────────────────────────
+  function init() {
+    if (state.started) {
+      showSplit();
+    } else {
+      showPreStart();
+    }
+  }
+
+  init();
+</script>
+</body>
+</html>

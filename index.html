@@ -338,6 +338,27 @@
     }
 
     .settings-btn:hover { opacity: 1; }
+
+    .timer-link {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-size: 18px;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.2s;
+      opacity: 0.3;
+      text-decoration: none;
+    }
+
+    .timer-link:hover { opacity: 1; }
   </style>
 </head>
 <body>
@@ -346,7 +367,7 @@
   <div class="overlay" id="overlay">
     <div class="setup-box">
       <h2>🏠 Family Hub Setup</h2>
-      <p class="hint">Paste your Google Calendar iCal URL below. Weather is already set to Bonbeach, Melbourne.</p>
+      <p class="hint">Your family calendar is already connected. Paste a different iCal URL below only if you want to switch it. Weather is already set to Bonbeach, Melbourne.</p>
 
 <div class="field">
         <label>Google Calendar iCal URL</label>
@@ -362,6 +383,9 @@
 
   <!-- Settings button (re-open config) -->
   <button class="settings-btn" onclick="openConfig()" title="Settings">⚙</button>
+
+  <!-- Morning timer link -->
+  <a class="timer-link" href="timer.html" title="Morning Timer">⏰</a>
 
   <!-- Left panel -->
   <div class="left-panel">
@@ -399,27 +423,32 @@
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJyeHZlaWZzaHVjcGluYWp0a2dmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAxMjQ2ODMsImV4cCI6MjA5NTcwMDY4M30.7ZhWD2gUO2aPZkRbmozLsyIsVX7VzoY5W9BxXb11ne8';
     const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+    // Permanently wired-in family calendar — no setup step needed.
+    // Change or override any time via the ⚙ settings button.
+    const DEFAULT_ICAL = 'https://calendar.google.com/calendar/ical/0a9e2e1666980d8e86be83c77184f9a8793c5bfaa1c559a32f99510326e6fb6c%40group.calendar.google.com/private-118c15713480175eecb727813a0a3013/basic.ics';
+
     // ── CONFIG ────────────────────────────────────────────
     function saveConfig() {
       const ical = document.getElementById('icalInput').value.trim();
-      localStorage.setItem('fh_ical', ical);
+      localStorage.setItem('fh_ical', ical || DEFAULT_ICAL);
       localStorage.setItem('fh_setup_done', '1');
       document.getElementById('overlay').style.display = 'none';
       init();
     }
 
     function openConfig() {
-      document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || '';
+      document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || DEFAULT_ICAL;
       document.getElementById('overlay').style.display = 'flex';
     }
 
     function checkConfig() {
-      // Always auto-start; overlay only shown if not previously dismissed
-      if (localStorage.getItem('fh_setup_done')) {
-        document.getElementById('icalInput').value = localStorage.getItem('fh_ical') || '';
-        document.getElementById('overlay').style.display = 'none';
-        init();
+      // Calendar is baked in — auto-provision it on first run and skip the setup screen entirely.
+      if (!localStorage.getItem('fh_ical')) {
+        localStorage.setItem('fh_ical', DEFAULT_ICAL);
       }
+      localStorage.setItem('fh_setup_done', '1');
+      document.getElementById('overlay').style.display = 'none';
+      init();
     }
 
     // ── CLOCK ─────────────────────────────────────────────
